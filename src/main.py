@@ -1,8 +1,8 @@
-import time, machine, network, gc, app.secrets as secrets
+import time, machine, network, gc, app.config as config
 from app.ota_updater import OTAUpdater
 
-
-wdt = machine.WDT(timeout=30000)  # enable it with a timeout of 2s
+print("Starting main.py locally")
+wdt = machine.WDT(timeout=60000)  # enable it with a timeout of 2s
 IP = "0.0.0.0"
 STA_IF = None
 
@@ -39,7 +39,7 @@ def connectToWifiAndUpdate():
     connet_wifi()
     # headers={"Authorization": "token {}".format(secrets.token)},
     otaUpdater = OTAUpdater(
-        "https://github.com/sam0910/spa_relay.git", main_dir="app", github_src_dir="src", secrets_file="secrets.py"
+        "https://github.com/sam0910/spa_relay", main_dir="app", github_src_dir="src", secrets_file="secrets.py"
     )
 
     wdt.feed()

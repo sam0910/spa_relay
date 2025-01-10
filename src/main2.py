@@ -39,10 +39,9 @@ def connectToWifiAndUpdate():
     connet_wifi()
     # headers={"Authorization": "token {}".format(secrets.token)},
     otaUpdater = OTAUpdater(
-        "https://github.com/sam0910/spa_relay.git",
-        main_dir="app",
-        secrets_file="secrets.py",
+        "https://github.com/sam0910/spa_relay.git", main_dir="app", github_src_dir="src", secrets_file="secrets.py"
     )
+
     wdt.feed()
     try:
         hasUpdated = otaUpdater.install_update_if_available()

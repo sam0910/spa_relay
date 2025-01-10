@@ -1,5 +1,5 @@
 import machine
-from src.smqtt import MQTTClient
+from app.smqtt import MQTTClient
 import app.secrets as secrets
 import uasyncio as asyncio
 

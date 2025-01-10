@@ -1,0 +1,9 @@
+/* [MASTER]
+jobs=4
+
+[MESSAGES CONTROL]
+
+disable=import-error,missing-module-docstring,line-too-long,consider-using-f-string,no-member,wrong-import-position,missing-function-docstring,consider-using-from-import,missing-class-docstring,too-few-public-methods,too-many-locals,too-many-statements,protected-access,no-self-use,wrong-import-order,import-outside-toplevel,syntax-error,pointless-string-statement,consider-using-with,too-many-arguments,fixme,too-many-instance-attributes,ungrouped-imports,unidiomatic-typecheck,invalid-name,too-many-nested-blocks,bare-except,unspecified-encoding,unused-import, report-missing-imports
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,r,t,db,f,t0,t1s,v */

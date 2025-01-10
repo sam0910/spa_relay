@@ -37,9 +37,9 @@ def connectToWifiAndUpdate():
     time.sleep(0.2)
     print("Memory free", gc.mem_free())
     connet_wifi()
+    # headers={"Authorization": "token {}".format(secrets.token)},
     otaUpdater = OTAUpdater(
-        "https://github.com/sam0910/acespa_relay",
-        headers={"Authorization": "token {}".format(secrets.token)},
+        "https://github.com/sam0910/spa_relay.git",
         main_dir="app",
         secrets_file="secrets.py",
     )

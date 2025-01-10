@@ -1,5 +1,5 @@
 import machine
-from smqtt import MQTTClient
+from src.smqtt import MQTTClient
 import app.secrets as secrets
 import uasyncio as asyncio
 
@@ -45,13 +45,7 @@ class Start:
                 self.check_station()
 
                 timestamp = self.rtc.datetime()
-                timestamp_str = (
-                    str(timestamp[4])
-                    + ":"
-                    + str(timestamp[5])
-                    + ":"
-                    + str(timestamp[6])
-                )
+                timestamp_str = str(timestamp[4]) + ":" + str(timestamp[5]) + ":" + str(timestamp[6])
                 self.publish(timestamp_str)
                 self.wdt.feed()
                 await asyncio.sleep_ms(10000)

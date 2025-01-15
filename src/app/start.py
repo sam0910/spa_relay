@@ -6,6 +6,7 @@ import uasyncio as asyncio
 
 class Start:
     def __init__(self, sta, ip, wdt):
+        self.FIRM_VERSION = "1.0.4"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
         self.station = sta
@@ -88,7 +89,7 @@ class Start:
         self.mqtt = self.mqtt_connect()
         self.mqtt.set_callback(self.subscribe_callback)
         self.mqtt.subscribe("cmd/" + self.DEVICE, 0)
-        self.publish("START {}".format(self.IP))
+        self.publish("START {}/{}".format(self.IP, self.FIRM_VERSION))
         asyncio.run(self.main())
 
     def subscribe_callback(self, topic, msg):

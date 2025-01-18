@@ -2,24 +2,23 @@ import machine
 from app.smqtt import MQTTClient
 import app.config as config
 import uasyncio as asyncio
+import time
 
 
 class Start:
     def __init__(self, sta, ip, wdt):
-        self.FIRM_VERSION = "1.0.4"
+        self.FIRM_VERSION = "1.0.5"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
         self.station = sta
         self.mqtt = None
         self.rtc = machine.RTC()
-        self.RELAY1 = machine.Pin(25, machine.Pin.OUT)
-        self.RELAY1.value(1)  # Initialize as OFF
-        self.RELAY2 = machine.Pin(26, machine.Pin.OUT)
-        self.RELAY2.value(1)  # Initialize as OFF
-        self.RELAY3 = machine.Pin(27, machine.Pin.OUT)
-        self.RELAY3.value(1)  # Initialize as OFF
-        self.RELAY4 = machine.Pin(21, machine.Pin.OUT)
-        self.RELAY4.value(1)  # Initialize as OFF
+        self.pins = [25, 26, 27, 21, 18, 5, 17, 16]
+        self.RELAYS = []
+        for pin in self.pins:
+            mpin = machine.Pin(pin, machine.Pin.OUT)
+            mpin.value(1)
+            self.RELAYS.append(mpin)
 
         self.wdt = wdt
         self.wdt.feed()
@@ -35,9 +34,9 @@ class Start:
             # creat task exception
             try:
                 self.mqtt.check_msg()
-                await asyncio.sleep_ms(3000)
+                await asyncio.sleep_ms(1000)
             except Exception as e:
-                self.publish("Exception in sub:" + e)
+                print("Exception in check_msg:" + str(e))
                 continue
 
     def check_station(self):
@@ -52,15 +51,16 @@ class Start:
                 self.check_station()
                 timestamp = self.rtc.datetime()
                 timestamp_str = str(timestamp[4]) + ":" + str(timestamp[5]) + ":" + str(timestamp[6])
-                self.publish(timestamp_str)
-                self.wdt.feed()
-                await asyncio.sleep_ms(30000)
+                self.publish(self.FIRM_VERSION + "@" + timestamp_str)
+
+                await asyncio.sleep_ms(50000)
             except Exception as e:
-                self.publish("Exception in pub:" + e)
+                self.publish("Exception in pub:" + str(e))
                 continue
 
     def mqtt_connect(self):
         try:
+            print("Connecting to MQTT")
             client_id = machine.unique_id()
             mac_address = "".join("{:02x}".format(byte) for byte in client_id)
 
@@ -72,11 +72,11 @@ class Start:
                 config.mqtt_pw,
             )
             client.connect()
-            # print("MQTT Connected")
+            print("MQTT Connected")
             return client
 
         except Exception as e:
-            # print("MQTT Connection Error: " + str(e))
+            print("MQTT Connection Error: " + str(e))
             return False
 
     async def main(self):
@@ -89,54 +89,69 @@ class Start:
         self.mqtt = self.mqtt_connect()
         self.mqtt.set_callback(self.subscribe_callback)
         self.mqtt.subscribe("cmd/" + self.DEVICE, 0)
+        self.mqtt.subscribe("ping")
         self.publish("START {}/{}".format(self.IP, self.FIRM_VERSION))
         asyncio.run(self.main())
 
     def subscribe_callback(self, topic, msg):
         msg = str(msg)
-        # print("msg: " + msg)  # msg = b'on'
+        topic = str(topic)
         msg = msg.replace("b'", "").replace("'", "")
+        topic = topic.replace("b'", "").replace("'", "")
+        if topic == "ping":
+            self.wdt.feed()
+            return
+        msg = msg.lower()
+        print(topic, msg)  # msg = b'on'
+        # msg format: on@1@sleep@10@off@2@sleep@10@off@3....
+        # msg format: on relay 1, sleep 10 sec, off relay 2, sleep 10 sec, off relay 3
+        print("COMMAND RECEIVED: " + msg)
 
-        if msg.startswith("on"):
-            relaynum = msg.split("@")
-            if len(relaynum) == 1:
-                self.publish("answer@on@1")
-                self.RELAY1.value(0)  # ON is 0
+        commands = msg.split("@")
+        i = 0
+        try:
+            while i < len(commands):
+                if commands[i] == "reboot":
+                    self.publish("REBOOT")
+                    time.sleep(1)
+                    machine.reset()
 
-            elif relaynum[1] == "3":
-                self.publish("answer@on@3")
-                self.RELAY3.value(0)  # ON is 0
+                elif commands[i] == "on":
+                    if str(commands[i + 1]) == "all":
+                        self.publish("ON(0)|ALL")
+                        for relay in self.RELAYS:
+                            relay.value(0)
+                        i += 2
+                        continue
+                    relay = int(commands[i + 1]) - 1
+                    self.publish("ON(0)|{}".format(commands[i + 1]))
+                    self.RELAYS[relay].value(0)  # ON is 0
+                    i += 2
+                elif commands[i] == "off":
+                    if str(commands[i + 1]) == "all":
+                        self.publish("OFF(1)|ALL")
+                        for relay in self.RELAYS:
+                            relay.value(1)
+                        i += 2
+                        continue
 
-            elif relaynum[1] == "2":
-                self.publish("answer@on@2")
-                self.RELAY2.value(0)  # ON is 0
+                    relay = int(commands[i + 1]) - 1
+                    self.RELAYS[relay].value(1)  # OFF is 1
+                    self.publish("OFF(1)|{}".format(commands[i + 1]))
+                    i += 2
+                elif commands[i] == "sleep":
+                    duration = int(commands[i + 1])
+                    self.publish("SLEEP_MS|{}".format(commands[i + 1]))
+                    time.sleep_ms(duration)
+                    i += 2
+                else:
+                    i += 1
 
-            elif relaynum[1] == "1":
-                self.publish("answer@on@1")
-                self.RELAY1.value(0)  # ON is 0
-
-            elif relaynum[1] == "4":
-                self.publish("answer@on@4")
-                self.RELAY4.value(0)  # ON is 0
-
-        if msg.startswith("off"):
-            relaynum = msg.split("@")
-            if len(relaynum) == 1:
-                self.publish("answer@off@1")
-                self.RELAY1.value(1)  # OFF is 1
-
-            elif relaynum[1] == "3":
-                self.publish("answer@off@3")
-                self.RELAY3.value(1)  # OFF is 1
-
-            elif relaynum[1] == "2":
-                self.publish("answer@off@2")
-                self.RELAY2.value(1)  # OFF is 1
-
-            elif relaynum[1] == "1":
-                self.publish("answer@off@1")
-                self.RELAY1.value(1)  # OFF is 1
-
-            elif relaynum[1] == "4":
-                self.publish("answer@off@4")
-                self.RELAY4.value(1)  # OFF is 1
+            self.publish(f"{msg}|DONE")
+        except Exception as e:
+            self.publish(f"ERROR_REBOOT: {msg} {e}")
+            print("Exception in command: ", e)
+            for relay in self.RELAYS:
+                relay.value(1)
+            machine.reset()
+            return

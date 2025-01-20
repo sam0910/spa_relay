@@ -7,13 +7,14 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt):
-        self.FIRM_VERSION = "1.0.5"
+        self.FIRM_VERSION = "2.0.0"
+        self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
         self.station = sta
         self.mqtt = None
         self.rtc = machine.RTC()
-        self.pins = [25, 26, 27, 21, 18, 5, 17, 16]
+        self.pins = [25, 26, 27, 21, 18, 5, 17, 16, 22, 23, 1, 3, 19, 15, 13, 14]
         self.RELAYS = []
         for pin in self.pins:
             mpin = machine.Pin(pin, machine.Pin.OUT)
@@ -90,7 +91,7 @@ class Start:
         self.mqtt.set_callback(self.subscribe_callback)
         self.mqtt.subscribe("cmd/" + self.DEVICE, 0)
         self.mqtt.subscribe("ping")
-        self.publish("START {}/{}".format(self.IP, self.FIRM_VERSION))
+        self.publish("START {}/{}/{}".format(self.IP, self.FIRM_VERSION, self.FIRM_NOTE))
         asyncio.run(self.main())
 
     def subscribe_callback(self, topic, msg):

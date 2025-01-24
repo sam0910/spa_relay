@@ -6,20 +6,17 @@ import time
 
 
 class Start:
-    def __init__(self, sta, ip, wdt):
-        self.FIRM_VERSION = "2.0.1"
+    def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
+        self.FIRM_VERSION = "2.0.2"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
+        self.STA_NAME = sta_name
         self.station = sta
         self.mqtt = None
         self.rtc = machine.RTC()
         self.pins = [25, 26, 27, 21, 18, 5, 17, 16, 22, 23, 1, 3, 19, 15, 13, 14]
         self.RELAYS = []
-        for pin in self.pins:
-            mpin = machine.Pin(pin, machine.Pin.OUT)
-            mpin.value(1)
-            self.RELAYS.append(mpin)
 
         self.wdt = wdt
         self.wdt.feed()
@@ -52,9 +49,9 @@ class Start:
                 self.check_station()
                 timestamp = self.rtc.datetime()
                 timestamp_str = str(timestamp[4]) + ":" + str(timestamp[5]) + ":" + str(timestamp[6])
-                self.publish(self.FIRM_VERSION + "@" + timestamp_str)
+                self.publish("AWAKE" + "@" + self.FIRM_VERSION + "@" + timestamp_str)
 
-                await asyncio.sleep_ms(50000)
+                await asyncio.sleep_ms(30000)
             except Exception as e:
                 self.publish("Exception in pub:" + str(e))
                 continue
@@ -91,7 +88,17 @@ class Start:
         self.mqtt.set_callback(self.subscribe_callback)
         self.mqtt.subscribe("cmd/" + self.DEVICE, 0)
         self.mqtt.subscribe("ping")
-        self.publish("START {}/{}/{}".format(self.IP, self.FIRM_VERSION, self.FIRM_NOTE))
+        self.publish("START {}@{}@{}@{}".format(self.IP, self.FIRM_VERSION, self.FIRM_NOTE, self.STA_NAME))
+
+        try:
+            for pin in self.pins:
+                mpin = machine.Pin(pin, machine.Pin.OUT)
+                mpin.value(1)
+                self.RELAYS.append(mpin)
+        except Exception as e:
+            self.publish("PIN_INIT_ERROR: " + str(e))
+            # machine.reset()
+
         asyncio.run(self.main())
 
     def subscribe_callback(self, topic, msg):

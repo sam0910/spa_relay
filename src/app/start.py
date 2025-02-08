@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.2"
+        self.FIRM_VERSION = "2.0.3"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -16,7 +16,9 @@ class Start:
         self.mqtt = None
         self.rtc = machine.RTC()
         self.pins = [25, 26, 27, 21, 18, 5, 17, 16, 22, 23, 1, 3, 19, 15, 13, 14]
+        self.READS = []
         self.RELAYS = []
+        self.READS_STATUS = []
 
         self.wdt = wdt
         self.wdt.feed()
@@ -35,11 +37,14 @@ class Start:
                 await asyncio.sleep_ms(1000)
             except Exception as e:
                 print("Exception in check_msg:" + str(e))
+                time.sleep(20)
+                machine.reset()
                 continue
 
     def check_station(self):
         if not self.station.isconnected():
             # print("Failed to connect to network. Resetting...")
+            time.sleep(20)
             machine.reset()
         return True
 
@@ -75,6 +80,8 @@ class Start:
 
         except Exception as e:
             print("MQTT Connection Error: " + str(e))
+            time.sleep(20)
+            machine.reset()
             return False
 
     async def main(self):
@@ -90,26 +97,49 @@ class Start:
         self.mqtt.subscribe("ping")
         self.publish("START {}@{}@{}@{}".format(self.IP, self.FIRM_VERSION, self.FIRM_NOTE, self.STA_NAME))
 
-        try:
-            for pin in self.pins:
+        for pin in self.pins:
+            try:
                 mpin = machine.Pin(pin, machine.Pin.OUT)
                 mpin.value(1)
                 self.RELAYS.append(mpin)
-        except Exception as e:
-            self.publish("PIN_INIT_ERROR: " + str(e))
-            # machine.reset()
+            except Exception as e:
+                mpin = machine.Pin(0, machine.Pin.OUT)
+                mpin.value(1)
+                self.RELAYS.append(mpin)
+                self.publish("PIN_INIT_ERROR: " + str(e))
+
+        reads_pins = [32, 34, 35]
+        for pin in reads_pins:
+            try:
+                mpin = machine.Pin(pin, machine.Pin.IN)
+                self.READS.append(mpin)
+                self.READS_STATUS.append(mpin.value())
+            except Exception as e:
+                mpin = machine.Pin(36, machine.Pin.IN)
+                self.READS.append(mpin)
+                self.READS_STATUS.append(0)
+                self.publish("PIN_INIT_ERROR: " + str(e))
 
         asyncio.run(self.main())
+
+    def check_reads(self):
+        i = 0
+        for read in self.READS:
+            value = read.value()
+            self.publish("READ@{}@{}".format(i, value))
+            self.READS_STATUS[i] = value
+            i += 1
 
     def subscribe_callback(self, topic, msg):
         msg = str(msg)
         topic = str(topic)
         msg = msg.replace("b'", "").replace("'", "")
         topic = topic.replace("b'", "").replace("'", "")
+        msg = msg.lower()
         if topic == "ping":
             self.wdt.feed()
             return
-        msg = msg.lower()
+
         print(topic, msg)  # msg = b'on'
         # msg format: on@1@sleep@10@off@2@sleep@10@off@3....
         # msg format: on relay 1, sleep 10 sec, off relay 2, sleep 10 sec, off relay 3
@@ -123,6 +153,10 @@ class Start:
                     self.publish("REBOOT")
                     time.sleep(1)
                     machine.reset()
+
+                elif commands[i] == "read":
+                    self.publish("READ")
+                    self.check_reads()
 
                 elif commands[i] == "on":
                     if str(commands[i + 1]) == "all":

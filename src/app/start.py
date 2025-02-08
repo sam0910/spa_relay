@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.6"
+        self.FIRM_VERSION = "2.0.7"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -19,10 +19,8 @@ class Start:
         self.READS = []
         self.RELAYS = []
         self.READS_STATUS = []
-
         self.wdt = wdt
         self.wdt.feed()
-
         # print("......IP:", self.DEVICE)
 
     def publish(self, msg):
@@ -156,12 +154,12 @@ class Start:
                     machine.reset()
 
                 elif commands[i] == "read":
-                    self.publish("READ_LEN|{}".format(len(self.READS)))
 
                     for i in range(len(self.READS)):
-                        value = self.READS[i].value()
-                        self.publish("VALUE@{}@{}".format(i, value))
-                        self.READS_STATUS[i] = value
+                        vv = self.READS[i].value()
+                        time.sleep_ms(100)
+                        self.publish("VALUE@{}@{}".format(i, vv))
+                        self.READS_STATUS[i] = vv
 
                     continue
 

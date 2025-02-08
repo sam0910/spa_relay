@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.5"
+        self.FIRM_VERSION = "2.0.6"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -129,6 +129,7 @@ class Start:
             self.publish("VALUE@{}@{}".format(i, value))
             self.READS_STATUS[i] = value
             i += 1
+        return True
 
     def subscribe_callback(self, topic, msg):
         msg = str(msg)
@@ -155,8 +156,13 @@ class Start:
                     machine.reset()
 
                 elif commands[i] == "read":
+                    self.publish("READ_LEN|{}".format(len(self.READS)))
 
-                    self.check_reads()
+                    for i in range(len(self.READS)):
+                        value = self.READS[i].value()
+                        self.publish("VALUE@{}@{}".format(i, value))
+                        self.READS_STATUS[i] = value
+
                     continue
 
                 elif commands[i] == "on":
@@ -190,7 +196,6 @@ class Start:
                 else:
                     i += 1
 
-            self.publish(f"{msg}|DONE")
         except Exception as e:
             self.publish(f"ERROR_REBOOT: {msg} {e}")
             print("Exception in command: ", e)

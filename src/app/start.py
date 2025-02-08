@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.4"
+        self.FIRM_VERSION = "2.0.5"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -155,7 +155,7 @@ class Start:
                     machine.reset()
 
                 elif commands[i] == "read":
-                    self.publish("READ")
+
                     self.check_reads()
                     continue
 

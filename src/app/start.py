@@ -126,7 +126,7 @@ class Start:
         i = 0
         for read in self.READS:
             value = read.value()
-            self.publish("READ@{}@{}".format(i, value))
+            self.publish("VALUE@{}@{}".format(i, value))
             self.READS_STATUS[i] = value
             i += 1
 
@@ -157,6 +157,7 @@ class Start:
                 elif commands[i] == "read":
                     self.publish("READ")
                     self.check_reads()
+                    continue
 
                 elif commands[i] == "on":
                     if str(commands[i + 1]) == "all":

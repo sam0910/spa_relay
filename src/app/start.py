@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.7"
+        self.FIRM_VERSION = "2.0.8"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -15,6 +15,11 @@ class Start:
         self.station = sta
         self.mqtt = None
         self.rtc = machine.RTC()
+        # ADC2 NO USER for WIFI, 0,2,4,12-15,25-27
+        #  WPD 2,4,12,13,
+
+        # 36,39,34,35,32,33,4,2
+        # [36, 39, 34, 35, 32]
         self.pins = [25, 26, 27, 21, 18, 5, 17, 16, 22, 23, 1, 3, 19, 15, 13, 14]
         self.READS = []
         self.RELAYS = []
@@ -106,7 +111,7 @@ class Start:
                 self.RELAYS.append(mpin)
                 self.publish("PIN_INIT_ERROR: " + str(e))
 
-        reads_pins = [32, 34, 35]
+        reads_pins = [36, 39, 34, 35, 32]
         for pin in reads_pins:
             try:
                 mpin = machine.Pin(pin, machine.Pin.IN)

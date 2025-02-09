@@ -7,7 +7,7 @@ import time
 
 class Start:
     def __init__(self, sta, ip, wdt, sta_name="ACESPA"):
-        self.FIRM_VERSION = "2.0.8"
+        self.FIRM_VERSION = "2.0.9"
         self.FIRM_NOTE = "25,26,27,21,18,5,17,16,22,23,1,3,19,15,13,14"
         self.IP = ip
         self.DEVICE = ip.split(".")[-1]
@@ -147,7 +147,6 @@ class Start:
         print(topic, msg)  # msg = b'on'
         # msg format: on@1@sleep@10@off@2@sleep@10@off@3....
         # msg format: on relay 1, sleep 10 sec, off relay 2, sleep 10 sec, off relay 3
-        print("COMMAND RECEIVED: " + msg)
 
         commands = msg.split("@")
         i = 0
@@ -159,13 +158,14 @@ class Start:
                     machine.reset()
 
                 elif commands[i] == "read":
-
+                    texts = ""
                     for i in range(len(self.READS)):
                         vv = self.READS[i].value()
                         time.sleep_ms(100)
-                        self.publish("VALUE@{}@{}".format(i, vv))
                         self.READS_STATUS[i] = vv
+                        texts += str(vv)
 
+                    self.publish("VALUE@{}".format(texts))
                     continue
 
                 elif commands[i] == "on":
